@@ -45,7 +45,7 @@ fn main() -> std::io::Result<()> {
     // remapping masses if given
     if args.mass.len() != 0 {
         if args.mass.len() != args.map.len() {
-            eprintln!("Error: --map has to have same number of arguments as --map");
+            eprintln!("Error: --mass has to have same number of arguments as --map");
             std::process::exit(1)
         } else {
             for (i, m) in args.mass.iter().enumerate() {
@@ -131,7 +131,7 @@ fn main() -> std::io::Result<()> {
                             total += 1;
                         }
                     }
-                    for index in index_to_remove {
+                    for index in index_to_remove.into_iter().rev() {
                         PKA_positions.remove(index);
                         directions.remove(index);
                         if PKA_positions.len() == 0 {
