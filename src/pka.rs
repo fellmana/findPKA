@@ -1,3 +1,4 @@
+use super::tools::vector3_norm;
 pub struct PKA {
     pub element: String,
     pub id: i64,
@@ -11,7 +12,7 @@ pub struct PKA {
 
 /// Generate velocity components based on energy, mass and direction vector.
 pub fn ekin_to_velocity(energy: f64, mass: f64, direction: &Vec<f64>) -> (f64, f64, f64) {
-    let norm: f64 = direction.iter().map(|i| (*i) as f64).sum();
+    let norm = super::tools::vector3_norm(direction.clone());
     let norm_dir: Vec<f64> = vec![
         direction[0] / norm,
         direction[1] / norm,
