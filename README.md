@@ -6,7 +6,7 @@ Command line tool for generating random spherically distributed Primary Knock-on
 ## Building
 The tool can be built by running the command: 
 
-```cargo build```
+```cargo build --release```
 
 ### Dependencies
 
