@@ -1,6 +1,7 @@
 use libm::atan2;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use std::env::temp_dir;
 use std::vec;
 
 /// generate one random direction -> (phi, theta).
@@ -62,11 +63,79 @@ pub fn N_random_directions(n: usize, seed: u64) -> Vec<(f64, f64)> {
     return directions;
 }
 
+/// Generate random position in cell
+pub fn random_position_in_cell(vec_x: &Vec<f64>, vec_y: &Vec<f64>, vec_z: &Vec<f64>, seed: u64) -> Vec<f64> {
+    let mut random = StdRng::seed_from_u64(seed);
+    let mut pos: Vec<f64> = vec![random.gen_range(vec_x[0]..vec_x[1]),
+                                 random.gen_range(vec_y[0]..vec_y[1]),
+                                 random.gen_range(vec_z[0]..vec_z[1])];
+    return pos;
+}
+
+/// Generate PKA positions based on a list of energies and box vectors,
+/// and suggested minimum distance between pkas
+pub fn generate_pka_positions(vec_pka: &Vec<f64>, vec_x: &Vec<f64>, vec_y: &Vec<f64>, vec_z: &Vec<f64>, r:f64, seed: u64) -> Vec<Vec<f64>> {
+    let mut positions: Vec<Vec<f64>> = Vec::new();
+    for _ in 0..vec_pka.len(){
+        if positions.len() == 0{
+            // generate random first position in cell
+            let mut position = random_position_in_cell(vec_x, vec_y, vec_x,seed);
+            positions.push(position);
+        }
+        else{
+            // generate new position trying to maximize distance from previous points
+            let mut best_pos = Vec::new();
+            let mut best_dist = 0.0;
+            let mut good_found = false;
+            for _i in 0..1000 {
+                let mut current_position = random_position_in_cell(vec_x, vec_y, vec_x, seed);
+                let mut shortest = 99999999.0;
+                for p in &positions {
+                    let mut dist = distance_between_periodic(&p,&current_position, vec_x, vec_y, vec_z);
+                    if dist < shortest{
+                        shortest = dist;
+                    }
+                }
+
+                if shortest > r{
+                    good_found = true;
+                    best_pos = current_position;
+                    best_dist = shortest;
+                    break;
+                } else if shortest >= best_dist {
+                    best_dist = shortest;
+                    best_pos = current_position;
+                }
+
+            }
+            positions.push(best_pos);
+        }
+    }  
+    return positions;
+}
+
 /// distance between two points a and b.
 pub fn distance_between(vec_a: &Vec<f64>, vec_b: &Vec<f64>) -> f64 {
     let mut dist: f64 = 0.0;
     for i in 0..vec_a.len() {
         dist += (vec_b[i] - vec_a[i]).powi(2);
+    }
+    dist.sqrt()
+}
+
+/// distance between two points a and b in a periodic cubic cell.
+pub fn distance_between_periodic(vec_a: &Vec<f64>, vec_b: &Vec<f64>, vec_x: &Vec<f64>, vec_y: &Vec<f64>, vec_z: &Vec<f64> ) -> f64 {
+    let mut dist: f64 = 0.0;
+    let mut lengths = vec![vec_x[1]-vec_x[0],vec_y[1]-vec_y[0],vec_z[1]-vec_z[0]];
+    for i in 0..vec_a.len() {
+        let mut tmp_dist = vec_b[i] - vec_a[i];
+        if tmp_dist < -lengths[i] * 0.5 {
+            tmp_dist = tmp_dist + lengths[i]
+        }
+        if tmp_dist >= lengths[i] * 0.5 {
+            tmp_dist = tmp_dist - lengths[i]
+        }
+        dist += (tmp_dist).powi(2);
     }
     dist.sqrt()
 }

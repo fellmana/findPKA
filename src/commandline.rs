@@ -22,8 +22,11 @@ pub struct Arguments {
     #[arg(short, help = "PKA distance from center (Å).", long, required = true)]
     pub rPKA: f64,
 
-    #[arg(short, long, help = "PKA energy (eV).", required = true)]
-    pub energy: f64,
+    #[arg(long,value_parser,
+        help="PKA energies (eV) if several is given then.",
+        required=true,
+        num_args = 1..)]
+    pub energy: Vec<f64>,
 
     #[arg(short, long, value_parser,
           help="Map elements ('Al,W...') in same order as type in data file",
@@ -37,6 +40,7 @@ pub struct Arguments {
         num_args = 1..)]
     pub mass: Vec<f64>,
 
+
     #[arg(
         short,
         long,
@@ -45,6 +49,15 @@ pub struct Arguments {
         required = false
     )]
     pub verbose: bool,
+
+    #[arg(
+        short,
+        long,
+        help = "Allow pkas to be positioned all around the cell",
+        default_value_t = false,
+        required = false
+    )]
+    pub notfixed: bool,
 
     #[arg(
         short,

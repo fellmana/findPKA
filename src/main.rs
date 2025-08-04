@@ -2,6 +2,8 @@
 use crate::pka::PKA;
 mod pka;
 mod tools;
+use core::num;
+use std::any::Any;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
@@ -59,10 +61,18 @@ fn main() -> std::io::Result<()> {
     let file = File::open(args.filename)?;
     let reader = BufReader::new(file);
     let mut center_pos: Vec<f64> = vec![0.0, 0.0, 0.0];
+    let mut xbox: Vec<f64> = vec![0.0,0.0];
+    let mut ybox: Vec<f64> = vec![0.0,0.0];
+    let mut zbox: Vec<f64> = vec![0.0,0.0];
     let mut box_check_done: bool = false;
     let mut reading_atoms: bool = false;
     let mut PKA_positions: Vec<Vec<f64>> = Vec::new();
-    let mut directions = tools::N_random_directions(args.n, args.seed);
+    let mut directions: Vec<(f64,f64)> = Vec::new();
+    if args.energy.len() > 1 {
+        directions = tools::N_random_directions(args.energy.len(), args.seed);
+    } else {
+        directions = tools::N_random_directions(args.n, args.seed);
+    }
     let mut total = 1;
 
     // Start reading data file
@@ -98,23 +108,32 @@ fn main() -> std::io::Result<()> {
                     // Check if atom position is suitable for a PKA.
                     let mut index_to_remove: Vec<usize> = Vec::new();
                     for i in 0..PKA_positions.len() {
-                        if tools::distance_between(&position, &PKA_positions[i]) <= args.tolerance {
+                        if tools::distance_between_periodic(&position, &PKA_positions[i],&xbox,&ybox,&zbox) <= args.tolerance {
                             let dir = tools::spherical_to_cartesian(
                                 args.rPKA,
                                 directions[i].0,
                                 directions[i].1,
                             );
+
+                            let mut current_eng = 0.0;
+
+                            if args.energy.len() > 1 {
+                                current_eng = args.energy[i];
+                            } else {
+                                current_eng = args.energy[0];
+                            }
+
                             let pka = pka::PKA::new(
                                 elem,
                                 id.parse::<i64>().unwrap(),
                                 masses[elem],
-                                args.energy,
+                                current_eng,
                                 &dir,
                             );
                             if args.verbose {
                                 println!("--- RUN {} ---", total);
                                 println!("PKA element: {}", elem);
-                                println!("PKA energy: {}", args.energy);
+                                println!("PKA energy: {}", current_eng);
                                 println!("PKA mass: {}", masses[elem]);
                                 println!("PKA lammps id: {}", id);
                                 println!("center position: {:?}", center_pos);
@@ -155,29 +174,37 @@ fn main() -> std::io::Result<()> {
             let pattern = collected[2];
             match pattern {
                 "xlo" => {
-                    center_pos[0] = (collected[1].parse::<f64>().unwrap()
-                        - collected[0].parse::<f64>().unwrap())
-                        / 2.0
+                    xbox[0] = collected[0].parse::<f64>().unwrap();
+                    xbox[1] = collected[1].parse::<f64>().unwrap();
+                    center_pos[0] = (xbox[1] - xbox[0]) / 2.0
                 }
                 "ylo" => {
-                    center_pos[1] = (collected[1].parse::<f64>().unwrap()
-                        - collected[0].parse::<f64>().unwrap())
-                        / 2.0
+                    ybox[0] = collected[0].parse::<f64>().unwrap();
+                    ybox[1] = collected[1].parse::<f64>().unwrap();
+                    center_pos[1] = (xbox[1] - xbox[0]) / 2.0
                 }
                 "zlo" => {
-                    center_pos[2] = (collected[1].parse::<f64>().unwrap()
-                        - collected[0].parse::<f64>().unwrap())
-                        / 2.0;
+                    zbox[0] = collected[0].parse::<f64>().unwrap();
+                    zbox[1] = collected[1].parse::<f64>().unwrap();
+                    center_pos[2] = (xbox[1] - xbox[0]) / 2.0;
                     // Last center_pos coordinate defined above then generation of PKA_positions.
-                    for i in 0..directions.len() {
-                        let delta_vector: Vec<f64> = tools::spherical_to_cartesian(
-                            args.rPKA,
-                            directions[i].0,
-                            directions[i].1,
-                        );
-                        let PKApos = tools::elementwise_subtraction(&center_pos, &delta_vector);
-                        PKA_positions.push(PKApos)
+
+                    if args.notfixed {
+                        // Generate based on given list of energies
+                        PKA_positions = tools::generate_pka_positions(&args.energy,&xbox,&ybox,&zbox,args.rPKA,args.seed)
+                    } else {
+                        // Generate based on number of PKAs
+                        for i in 0..directions.len() {
+                            let delta_vector: Vec<f64> = tools::spherical_to_cartesian(
+                                args.rPKA,
+                                directions[i].0,
+                                directions[i].1,
+                            );
+                            let PKApos = tools::elementwise_subtraction(&center_pos, &delta_vector);
+                            PKA_positions.push(PKApos)
+                        }
                     }
+                    //
                     box_check_done = true;
                 }
                 _ => (),
