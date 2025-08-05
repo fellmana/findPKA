@@ -90,7 +90,7 @@ fn main() -> std::io::Result<()> {
                 if temp.len() < 3 {
                     continue;
                 } else {
-                    let collected: Vec<&str> = temp.split(" ").collect();
+                    let collected: Vec<&str> = temp.split_whitespace().collect();
                     let id = collected[0];
                     let element_type = collected[1];
                     let elem = id_to_element[element_type].as_str();
@@ -101,7 +101,7 @@ fn main() -> std::io::Result<()> {
                     ];
                     // Optimization: if position too far from center skip checking agains positions.
                     if tools::distance_between(&center_pos, &position)
-                        > args.rPKA + 2.0 * args.tolerance
+                        > args.rPKA + 2.0 * args.tolerance && !args.notfixed
                     {
                         continue;
                     }
@@ -167,7 +167,7 @@ fn main() -> std::io::Result<()> {
         } else {
             // Read file untill all box information is defined
             let temp = line?;
-            let collected: Vec<&str> = temp.split(" ").collect();
+            let collected: Vec<&str> = temp.split_whitespace().collect();
             if collected.len() < 4 {
                 continue;
             }

@@ -63,23 +63,17 @@ pub fn N_random_directions(n: usize, seed: u64) -> Vec<(f64, f64)> {
     return directions;
 }
 
-/// Generate random position in cell
-pub fn random_position_in_cell(vec_x: &Vec<f64>, vec_y: &Vec<f64>, vec_z: &Vec<f64>, seed: u64) -> Vec<f64> {
-    let mut random = StdRng::seed_from_u64(seed);
-    let mut pos: Vec<f64> = vec![random.gen_range(vec_x[0]..vec_x[1]),
-                                 random.gen_range(vec_y[0]..vec_y[1]),
-                                 random.gen_range(vec_z[0]..vec_z[1])];
-    return pos;
-}
-
 /// Generate PKA positions based on a list of energies and box vectors,
 /// and suggested minimum distance between pkas
 pub fn generate_pka_positions(vec_pka: &Vec<f64>, vec_x: &Vec<f64>, vec_y: &Vec<f64>, vec_z: &Vec<f64>, r:f64, seed: u64) -> Vec<Vec<f64>> {
     let mut positions: Vec<Vec<f64>> = Vec::new();
+    let mut random = StdRng::seed_from_u64(seed);
     for _ in 0..vec_pka.len(){
         if positions.len() == 0{
             // generate random first position in cell
-            let mut position = random_position_in_cell(vec_x, vec_y, vec_x,seed);
+            let mut position = vec![random.gen_range(vec_x[0]..vec_x[1]),
+                                              random.gen_range(vec_y[0]..vec_y[1]),
+                                              random.gen_range(vec_z[0]..vec_z[1])];
             positions.push(position);
         }
         else{
@@ -88,7 +82,9 @@ pub fn generate_pka_positions(vec_pka: &Vec<f64>, vec_x: &Vec<f64>, vec_y: &Vec<
             let mut best_dist = 0.0;
             let mut good_found = false;
             for _i in 0..1000 {
-                let mut current_position = random_position_in_cell(vec_x, vec_y, vec_x, seed);
+                let mut current_position = vec![random.gen_range(vec_x[0]..vec_x[1]),
+                                                          random.gen_range(vec_y[0]..vec_y[1]),
+                                                          random.gen_range(vec_z[0]..vec_z[1])];
                 let mut shortest = 99999999.0;
                 for p in &positions {
                     let mut dist = distance_between_periodic(&p,&current_position, vec_x, vec_y, vec_z);
